@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件管理器</title>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --primary-light: #eff6ff;
+            --primary-hover: #2563eb;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+        }
+
+        * {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: var(--bg-color);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 960px;
+            padding: 40px 20px;
+        }
+
+        /* 页面标题区域 */
+        .page-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .page-header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .current-path {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary-light);
+            color: var(--primary-color);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 12px;
+        }
+
+        /* 卡片样式 */
+        .main-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+
+        .card-section {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        /* 上传区域 */
+        .upload-section {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        }
+
+        .upload-box {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .upload-box .form-control {
+            flex: 1;
+            min-width: 200px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 16px;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .upload-box .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .upload-box .btn-primary {
+            background: var(--primary-color);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 24px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .upload-box .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        /* 搜索区域 */
+        .search-box {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-box .form-control {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 16px;
+            transition: all 0.2s;
+        }
+
+        .search-box .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-box .btn {
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-weight: 500;
+        }
+
+        .search-box .btn-outline-secondary {
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .search-box .btn-outline-secondary:hover {
+            background: var(--bg-color);
+            color: var(--text-primary);
+        }
+
+        /* 文件表格 */
+        .file-table {
+            margin: 0;
+        }
+
+        .file-table thead th {
+            background: #f8fafc;
+            border: none;
+            padding: 14px 16px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .file-table tbody tr {
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.15s;
+        }
+
+        .file-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .file-table tbody td {
+            padding: 16px;
+            vertical-align: middle;
+            border: none;
+        }
+
+        .file-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 450;
+            transition: color 0.15s;
+        }
+
+        .file-link:hover {
+            color: var(--primary-color);
+        }
+
+        .file-icon {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-light);
+            border-radius: 10px;
+            font-size: 1.1rem;
+        }
+
+        .file-size {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .file-time {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-download:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: var(--primary-light);
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h5 {
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            color: #94a3b8;
+            font-size: 0.875rem;
+        }
+
+        /* 提示消息 */
+        .alert {
+            border: none;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #ecfdf5;
+            color: #047857;
+        }
+
+        .alert-danger {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .btn-close {
+            opacity: 0.5;
+        }
+
+        /* 响应式 */
+        @media (max-width: 640px) {
+            .container {
+                padding: 20px 16px;
+            }
+
+            .upload-box {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .upload-box .form-control {
+                min-width: 100%;
+            }
+
+            .upload-box .btn-primary {
+                width: 100%;
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+
+            .search-box .form-control,
+            .search-box .btn {
+                width: 100%;
+            }
+
+            .file-table {
+                font-size: 0.875rem;
+            }
+
+            .file-table th,
+            .file-table td {
+                padding: 12px 8px;
+            }
+        }
+
+        /* 动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .main-card {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* 删除按钮 */
+        .btn-delete {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-delete:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+            background: #fef2f2;
+        }
+
+        /* 操作按钮组 */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 确认弹窗 */
+        .confirm-modal .modal-content {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .confirm-modal .modal-header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 24px;
+        }
+
+        .confirm-modal .modal-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .confirm-modal .modal-body {
+            padding: 24px;
+        }
+
+        .confirm-modal .modal-body p {
+            margin: 0;
+            color: var(--text-secondary);
+        }
+
+        .confirm-modal .modal-footer {
+            border-top: 1px solid var(--border-color);
+            padding: 16px 24px;
+        }
+
+        .confirm-modal .btn-cancel {
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 10px;
+            padding: 10px 20px;
+        }
+
+        .confirm-modal .btn-cancel:hover {
+            background: var(--bg-color);
+        }
+
+        .confirm-modal .btn-confirm {
+            background: #ef4444;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: white;
+        }
+
+        .confirm-modal .btn-confirm:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="page-header">
+            <h1>文件管理器</h1>
+            <p>浏览、下载和管理您的文件</p>
+            <div class="current-path">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span th:text="${currentDir}">/</span>
+            </div>
+        </div>
+
+        <!-- 主卡片 -->
+        <div class="main-card">
+            <!-- 提示消息 -->
+            <div th:if="${message}" class="card-section mb-0" style="padding-bottom: 0;">
+                <div class="alert alert-dismissible fade show" role="alert"
+                     th:classappend="${messageType == 'success'} ? 'alert-success' : 'alert-danger'">
+                    <span th:text="${message}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- 上传区域 -->
+            <div class="card-section upload-section">
+                <div class="section-title">上传文件</div>
+                <form th:action="@{/upload}" method="post" enctype="multipart/form-data" class="upload-box">
+                    <input type="file" name="file" class="form-control" required>
+                    <button type="submit" class="btn btn-primary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        上传
+                    </button>
+                </form>
+            </div>
+
+            <!-- 搜索区域 -->
+            <div class="card-section">
+                <div class="section-title">文件列表</div>
+                <form th:action="@{/}" method="get" class="search-box">
+                    <input type="text" name="search" class="form-control" placeholder="搜索文件名..."
+                           th:value="${search}">
+                    <button class="btn btn-primary" type="submit">搜索</button>
+                    <a th:href="@{/}" class="btn btn-outline-secondary" th:if="${search}">清除</a>
+                </form>
+            </div>
+
+            <!-- 文件列表 -->
+            <div class="card-section" style="padding-top: 0;">
+                <div class="table-responsive">
+                    <table class="table file-table">
+                        <thead>
+                            <tr>
+                                <th>文件名</th>
+                                <th style="width: 120px;">大小</th>
+                                <th style="width: 160px;">修改时间</th>
+                                <th style="width: 180px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${files.empty}">
+                                <td colspan="4">
+                                    <div class="empty-state">
+                                        <div class="empty-icon">📂</div>
+                                        <h5>暂无文件</h5>
+                                        <p>上传文件或把文件放到 files 文件夹下</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr th:each="file : ${files}">
+                                <td>
+                                    <a th:href="@{/download/{name}(name=${file.name})}" class="file-link">
+                                        <span class="file-icon">📄</span>
+                                        <span th:text="${file.name}">filename</span>
+                                    </a>
+                                </td>
+                                <td class="file-size" th:text="${file.sizeFormatted}">1.2 MB</td>
+                                <td class="file-time" th:text="${#dates.format(file.lastModified, 'yyyy-MM-dd HH:mm')}">2024-01-01</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a th:href="@{/download/{name}(name=${file.name})}" class="btn-download">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                <polyline points="7 10 12 15 17 10"></polyline>
+                                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                                            </svg>
+                                            下载
+                                        </a>
+                                        <button type="button" class="btn-delete" th:data-filename="${file.name}" onclick="confirmDelete(this)">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            </svg>
+                                            删除
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认弹窗 -->
+    <div class="modal fade confirm-modal" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">确认删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>确定要删除文件 <strong id="deleteFileName"></strong> 吗？</p>
+                    <p class="text-muted small mt-2 mb-0">此操作无法撤销，请谨慎操作。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-confirm" id="confirmDeleteBtn">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let deleteForm = null;
+
+        // 页面加载完成后，自动关闭成功提醒
+        document.addEventListener('DOMContentLoaded', function() {
+            const alertEl = document.querySelector('.alert-success');
+            if (alertEl) {
+                setTimeout(function() {
+                    const bsAlert = new bootstrap.Alert(alertEl);
+                    bsAlert.close();
+                }, 1000);
+            }
+        });
+
+        function confirmDelete(btn) {
+            const filename = btn.getAttribute('data-filename');
+            document.getElementById('deleteFileName').textContent = filename;
+
+            // 创建表单用于提交删除请求
+            deleteForm = document.createElement('form');
+            deleteForm.method = 'POST';
+            deleteForm.action = '/delete/' + encodeURIComponent(filename);
+
+            const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            modal.show();
+
+            // 确认删除时提交表单
+            document.getElementById('confirmDeleteBtn').onclick = function() {
+                modal.hide();
+                document.body.appendChild(deleteForm);
+                deleteForm.submit();
+            };
+        }
+    </script>
+</body>
+</html>
