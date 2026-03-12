@@ -451,7 +451,9 @@
                 <div class="alert alert-dismissible fade show" role="alert"
                      th:classappend="${messageType == 'success'} ? 'alert-success' : 'alert-danger'">
                     <span th:text="${message}"></span>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <button type="button" class="close" aria-label="Close" onclick="this.parentElement.style.display='none'">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
             </div>
 
@@ -546,7 +548,9 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="deleteModalLabel">确认删除</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <div class="modal-body">
                     <p>确定要删除文件 <strong id="deleteFileName"></strong> 吗？</p>
@@ -560,39 +564,41 @@
         </div>
     </div>
 
-    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/popper.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
     <script>
         let deleteForm = null;
 
         // 页面加载完成后，自动关闭成功提醒
-        document.addEventListener('DOMContentLoaded', function() {
-            const alertEl = document.querySelector('.alert-success');
-            if (alertEl) {
+        $(document).ready(function() {
+            var $alert = $('.alert-success');
+            if ($alert.length) {
                 setTimeout(function() {
-                    const bsAlert = new bootstrap.Alert(alertEl);
-                    bsAlert.close();
+                    $alert.fadeOut('slow', function() {
+                        $(this).remove();
+                    });
                 }, 1000);
             }
         });
 
         function confirmDelete(btn) {
-            const filename = btn.getAttribute('data-filename');
-            document.getElementById('deleteFileName').textContent = filename;
+            var filename = $(btn).data('filename');
+            $('#deleteFileName').text(filename);
 
             // 创建表单用于提交删除请求
-            deleteForm = document.createElement('form');
-            deleteForm.method = 'POST';
-            deleteForm.action = '/delete/' + encodeURIComponent(filename);
+            deleteForm = $('<form>');
+            deleteForm.attr('method', 'POST');
+            deleteForm.attr('action', '/delete/' + encodeURIComponent(filename));
 
-            const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            modal.show();
+            $('#deleteModal').modal('show');
 
             // 确认删除时提交表单
-            document.getElementById('confirmDeleteBtn').onclick = function() {
-                modal.hide();
-                document.body.appendChild(deleteForm);
+            $('#confirmDeleteBtn').off('click').on('click', function() {
+                $('#deleteModal').modal('hide');
+                $('body').append(deleteForm);
                 deleteForm.submit();
-            };
+            });
         }
     </script>
 </body>
